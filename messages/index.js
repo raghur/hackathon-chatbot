@@ -7,6 +7,7 @@ http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 "use strict";
 var builder = require("botbuilder");
 var botbuilder_azure = require("botbuilder-azure");
+var mysql = require("mysql");
 require("./utils");
 
 var useEmulator = (process.env.NODE_ENV == 'development');
@@ -27,6 +28,21 @@ var luisAPIHostName = process.env.LuisAPIHostName || 'westus.api.cognitive.micro
 
 const LuisModelUrl = 'https://' + luisAPIHostName + '/luis/v2.0/apps/' + luisAppId + '?subscription-key=' + luisAPIKey;
 console.log(LuisModelUrl);
+
+var con = mysql.createConnection({
+  host: "localhost",
+  user: "root",
+  password: "MarchRain@123"
+});
+
+con.connect(function(err){
+  if(err){
+    console.log('Error connecting to Db');
+    return;
+  }
+  console.log('Db Connection established');
+});
+
 //https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/747a7f6f-9583-4fbe-96e8-b807b4691bb9?subscription-key=7da8cb8d6bad41648643ac65735f3e17&verbose=true&q=
 // Main dialog with LUIS
 var recognizer = new builder.LuisRecognizer(LuisModelUrl);
@@ -78,8 +94,15 @@ bot.dialog("/OnHoldOrders", [
     (session) => {
        // fire sql query and return data here. 
        console.log("in OnHoldOrders dialog")
-       session.send ("here are your OnHold orders: ")
-       builder.Prompts.confirm(session, "Would you like to release orders?");
+       con.query('SELECT * FROM iptor.SRBSOH WHERE OHHLIN="Y"',(function(session){
+            return function(err, rows) {
+                if(err) console.log(err);
+                console.log('Data received from Db:\n');
+                console.log(rows);
+                session.send('There are ' + rows.length + ' orders onHold')
+                builder.Prompts.confirm(session, "Would you like to release orders?");
+            };
+        })(session));
     },
     (session, args) => {
         console.log("results: ", JSON.stringifyOnce(args));
