@@ -79,7 +79,7 @@ How many orders were shipped today?`);
         (session, args, next) => {
             console.log("results: ", JSON.stringifyOnce(args));
             //short circuit if we already have completed a dialog and are returning here.
-            if (args.childId !== 'BotBuilder.Prompts') 
+            if (args.childId !== 'BotBuilder.Prompts' && args.promptType !== 3)
                 next();
             else {
                 session.send("So you want to find orders by status: %s", args.response.entity);
