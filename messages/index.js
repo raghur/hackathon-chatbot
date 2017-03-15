@@ -66,7 +66,8 @@ How many orders were shipped today?`);
            var orderstatus = builder.EntityRecognizer.findEntity(args.entities, "orderstatus");
            console.log(orderstatus);
            var countEntity = builder.EntityRecognizer.findEntity(args.entities, "builtin.number");
-           session.dialogData.count = countEntity ? countEntity.entity : 10;
+           if (countEntity)
+               session.dialogData.count = countEntity.entity;
            if (!orderstatus) {
                builder.Prompts.choice(session, "Sure - what type of orders?", ["On Hold", "Shipped"]);
            } else {
@@ -103,8 +104,12 @@ bot.dialog("/OnHoldOrders", [
        // fire sql query and return data here. 
        console.log("in OnHoldOrders dialog");
        console.log(JSON.stringifyOnce(args, null, 2));
-       session.dialogData = args || { count: 10};
-       con.query('SELECT * FROM iptor.SRBSOH WHERE OHHLIN="Y" limit ' + session.dialogData.count,(function(session){
+       session.dialogData = args || {};
+       var qry = 'SELECT * FROM iptor.SRBSOH WHERE OHHLIN="Y" ';
+       if (session.dialogData.count) {
+           qry += `limit ${session.dialogData.count}`;
+       }
+       con.query(qry, (function(session){
             return function(err, rows) {
                 if(err) console.log(err);
                 console.log('Data received from Db:\n');
