@@ -69,7 +69,8 @@ How many orders were shipped today?`);
            if (countEntity)
                session.dialogData.count = countEntity.entity;
            if (!orderstatus) {
-               builder.Prompts.choice(session, "Sure - what type of orders?", ["On Hold", "Shipped"]);
+               builder.Prompts.choice(session, "Sure - what type of orders?", ["On Hold", "Shipped"],
+                            {listStyle: builder.ListStyle.list });
            } else {
                if (orderstatus.entity == "hold") {
                    session.send("going to find orders by hold status.");
@@ -109,13 +110,14 @@ bot.dialog("/OnHoldOrders", [
        if (session.dialogData.count) {
            qry += `limit ${session.dialogData.count}`;
        }
+       console.log(qry);
        con.query(qry, (function(session){
             return function(err, rows) {
                 if(err) console.log(err);
                 console.log('Data received from Db:\n');
                 console.log(rows.length);
                 if (rows.length > 5) {
-                    session.send('There are ' + rows.length + ' orders onHold')
+                    session.send('There are ' + rows.length + ' orders on hold')
                 } else {
                     session.send(`Listing ${rows.length} on hold orders: `)
                 }
@@ -124,10 +126,10 @@ bot.dialog("/OnHoldOrders", [
         })(session));
     },
     (session, args) => {
-        console.log("results: ", JSON.stringifyOnce(args));
+        console.log("results: ", JSON.stringifyOnce(args, null, 2));
         if (args.response) {
             builder.Prompts.choice(session, "Would you like to release all orders or selective orders?",
-                        ["All", "Selective"]);
+                        ["All", "Selective"], {listStyle: builder.ListStyle.list });
         } else {
             session.endDialog("ok... Is there anything else I can help with today?");
         }
