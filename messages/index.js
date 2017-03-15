@@ -114,10 +114,12 @@ bot.dialog("/OnHoldOrders", [
                 if(err) console.log(err);
                 console.log('Data received from Db:\n');
                 console.log(rows.length);
-                if (rows.length > 5) {
-                    session.send('There are ' + rows.length + ' orders onHold')
+                if (session.dialogData.count) {
+                    var card  = createReceiptCard(session, rows);
+                    var msg = new builder.Message(session).addAttachment(card);
+                    session.send(msg);
                 } else {
-                    session.send(`Listing ${rows.length} on hold orders: `)
+                    session.send('There are ' + rows.length + ' orders onHold')
                 }
                 builder.Prompts.confirm(session, "Would you like to release orders?");
             };
@@ -147,7 +149,7 @@ bot.dialog("/OnHoldOrders", [
 
 function createReceiptCard(session, rows) {
     console.log('*****Creating Receipt Card')
-    var receiptItems = rows.slice(1,4).map(function(item) {
+    var receiptItems = rows.map(function(item) {
         console.log(item)
         return builder.ReceiptItem.create(session, '$ ' + item.OHOVAL, item.OHNAME)
                 .quantity(368)
