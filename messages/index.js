@@ -52,7 +52,7 @@ bot.dialog('/', intents);
 .matches('<yourIntent>')... See details at http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 */
 intents.matches('Help', (session, args)=> {
-    session.send(`Hello! I'm a bot and I can help with finding orders and updating order statuses. Try asking me 
+    session.send(`Hello! I'm a bot and I can help with finding orders and updating order statuses. Try asking me
     
 How many orders are on hold?
     
@@ -100,12 +100,15 @@ bot.dialog("/OnHoldOrders", [
     (session) => {
        // fire sql query and return data here. 
        console.log("in OnHoldOrders dialog")
-       con.query('SELECT * FROM iptor.SRBSOH WHERE OHHLIN="Y"',(function(session){
+       con.query('SELECT * FROM iptor.SRBSOH WHERE OHHLIN="Y" order by OHOVAL desc',(function(session){
             return function(err, rows) {
                 if(err) console.log(err);
                 console.log('Data received from Db:\n');
-                console.log(rows);
+                console.log("results: ", JSON.stringifyOnce(rows));
                 session.send('There are ' + rows.length + ' orders onHold')
+                var card  = createReceiptCard(session, rows);
+                var msg = new builder.Message(session).addAttachment(card);
+                session.send(msg);
                 builder.Prompts.confirm(session, "Would you like to release orders?");
             };
         })(session));
@@ -131,6 +134,25 @@ bot.dialog("/OnHoldOrders", [
         session.endDialog("ok... Is there anything else I can help with today?");
     }
 ]);
+
+function createReceiptCard(session, rows) {
+    console.log('*****Creating Receipt Card')
+    var receiptItems = rows.slice(1,4).map(function(item) {
+        console.log(item)
+        return builder.ReceiptItem.create(session, '$ ' + item.OHOVAL, item.OHNAME)
+                .quantity(368)
+    });
+    return new builder.ReceiptCard(session)
+        .title('Orders on hold')
+        .facts([
+            builder.Fact.create(session, ' orders on hold', rows.length.toString())
+        ])
+        .items(receiptItems)
+        .buttons([
+            builder.CardAction.openUrl(session, 'https://azure.microsoft.com/en-us/pricing/', 'More Information')
+                .image('https://raw.githubusercontent.com/amido/azure-vector-icons/master/renders/microsoft-azure.png')
+        ]);
+}
 
 if (useEmulator) {
     var restify = require('restify');
