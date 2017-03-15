@@ -36,10 +36,11 @@ bot.dialog('/', intents);
 .matches('<yourIntent>')... See details at http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 */
 intents.matches('Help', (session, args)=> {
-    session.send("Hello! I'm a bot and I can help with finding orders and updating order statuses. Try asking me ");
-    session.send("how many orders are on hold?");
-    session.send("How many orders were shipped today?");
-    //console.log(JSON.stringifyOnce(session, null, 2));
+    session.send(`Hello! I'm a bot and I can help with finding orders and updating order statuses. Try asking me 
+    
+How many orders are on hold?
+    
+How many orders were shipped today?`);
     console.log(JSON.stringifyOnce(args, null, 2));
 })
 .matches('OrderQuery', 
