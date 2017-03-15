@@ -52,7 +52,7 @@ bot.dialog('/', intents);
 .matches('<yourIntent>')... See details at http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 */
 intents.matches('Help', (session, args)=> {
-    session.send(`Hello! I'm a bot and I can help with finding orders and updating order statuses. Try asking me 
+    session.send(`Hello! I'm a bot and I can help with finding orders and updating order statuses. Try asking me
     
 How many orders are on hold?
     
@@ -116,10 +116,12 @@ bot.dialog("/OnHoldOrders", [
                 if(err) console.log(err);
                 console.log('Data received from Db:\n');
                 console.log(rows.length);
-                if (rows.length > 5) {
-                    session.send('There are ' + rows.length + ' orders on hold')
+                if (session.dialogData.count) {
+                    var card  = createReceiptCard(session, rows);
+                    var msg = new builder.Message(session).addAttachment(card);
+                    session.send(msg);
                 } else {
-                    session.send(`Listing ${rows.length} on hold orders: `)
+                    session.send('There are ' + rows.length + ' orders on hold')
                 }
                 builder.Prompts.confirm(session, "Would you like to release orders?");
             };
@@ -147,6 +149,25 @@ bot.dialog("/OnHoldOrders", [
     }
 ]);
 
+function createReceiptCard(session, rows) {
+    console.log('*****Creating Receipt Card')
+    var receiptItems = rows.map(function(item) {
+        console.log(item)
+        return builder.ReceiptItem.create(session, '$ ' + item.OHOVAL, item.OHNAME)
+                .quantity(368)
+    });
+    return new builder.ReceiptCard(session)
+        .title('Orders on hold')
+        .facts([
+            builder.Fact.create(session, ' orders on hold', rows.length.toString())
+        ])
+        .items(receiptItems)
+        .buttons([
+            builder.CardAction.openUrl(session, 'https://azure.microsoft.com/en-us/pricing/', 'More Information')
+                .image('https://raw.githubusercontent.com/amido/azure-vector-icons/master/renders/microsoft-azure.png')
+        ]);
+}
+
 if (useEmulator) {
     var restify = require('restify');
     var server = restify.createServer();
@@ -157,4 +178,3 @@ if (useEmulator) {
 } else {
     module.exports = { default: connector.listen() }
 }
-
