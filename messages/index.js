@@ -62,9 +62,14 @@ How many orders were shipped today?`);
         },
         (session, args, next) => {
             console.log("results: ", JSON.stringifyOnce(args));
-           session.send("So you want to find orders by status: %s", args.response.entity);
-           if (args.response.entity == 'On Hold')
-               session.beginDialog("/OnHoldOrders");
+            //short circuit if we already have completed a dialog and are returning here.
+            if (args.childId !== 'BotBuilder.Prompts') 
+                next();
+            else {
+                session.send("So you want to find orders by status: %s", args.response.entity);
+                if (args.response.entity == 'On Hold')
+                    session.beginDialog("/OnHoldOrders");
+            }
         }
     ]
 )
@@ -87,15 +92,20 @@ bot.dialog("/OnHoldOrders", [
         if (args.response) {
             builder.Prompts.choice(session, "Would you like to release all orders or selective orders?",
                         ["All", "Selective"]);
+        } else {
+            session.endDialog("ok... Is there anything else I can help with today?");
         }
     },
     (session, args) => {
         console.log("results: ", JSON.stringifyOnce(args));
         if (args.response.entity == "Selective") {
             console.log("releasing selective orders");
+            session.send("releasing selective orders");
         } else if (args.response.entity == "All") {
             console.log("releasing all orders");
+            session.send("releasing all orders");
         }
+        session.endDialog("ok... Is there anything else I can help with today?");
     }
 ]);
 
