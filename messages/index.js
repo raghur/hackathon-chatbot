@@ -65,26 +65,28 @@ How many orders were shipped today?`);
            console.log(JSON.stringifyOnce(args, null, 2));
            var orderstatus = builder.EntityRecognizer.findEntity(args.entities, "orderstatus");
            console.log(orderstatus);
+           var countEntity = builder.EntityRecognizer.findEntity(args.entities, "builtin.number");
+           session.dialogData.count = countEntity ? countEntity.entity : 10;
            if (!orderstatus) {
                builder.Prompts.choice(session, "Sure - what type of orders?", ["On Hold", "Shipped"]);
            } else {
                if (orderstatus.entity == "hold") {
                    session.send("going to find orders by hold status.");
-                   session.beginDialog("/OnHoldOrders");
+                   session.beginDialog("/OnHoldOrders", session.dialogData);
                } else if(orderstatus.entity == "shipped") {
                    session.send("going to find orders by status shipped");
                }
            }
         },
         (session, args, next) => {
-            console.log("results: ", JSON.stringifyOnce(args));
+            console.log("results: ", JSON.stringifyOnce(args, null, 2));
             //short circuit if we already have completed a dialog and are returning here.
             if (args.childId !== 'BotBuilder.Prompts' && args.promptType !== 3)
                 next();
             else {
                 session.send("So you want to find orders by status: %s", args.response.entity);
                 if (args.response.entity == 'On Hold')
-                    session.beginDialog("/OnHoldOrders");
+                    session.beginDialog("/OnHoldOrders", session.dialogData);
             }
         }
     ]
@@ -97,15 +99,21 @@ How many orders were shipped today?`);
 });
 
 bot.dialog("/OnHoldOrders", [
-    (session) => {
+    (session, args) => {
        // fire sql query and return data here. 
-       console.log("in OnHoldOrders dialog")
-       con.query('SELECT * FROM iptor.SRBSOH WHERE OHHLIN="Y"',(function(session){
+       console.log("in OnHoldOrders dialog");
+       console.log(JSON.stringifyOnce(args, null, 2));
+       session.dialogData = args || { count: 10};
+       con.query('SELECT * FROM iptor.SRBSOH WHERE OHHLIN="Y" limit ' + session.dialogData.count,(function(session){
             return function(err, rows) {
                 if(err) console.log(err);
                 console.log('Data received from Db:\n');
-                console.log(rows);
-                session.send('There are ' + rows.length + ' orders onHold')
+                console.log(rows.length);
+                if (rows.length > 5) {
+                    session.send('There are ' + rows.length + ' orders onHold')
+                } else {
+                    session.send(`Listing ${rows.length} on hold orders: `)
+                }
                 builder.Prompts.confirm(session, "Would you like to release orders?");
             };
         })(session));
